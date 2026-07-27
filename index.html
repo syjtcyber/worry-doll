@@ -1,0 +1,841 @@
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>안개숲 걱정인형 · 프로토타입 0.2</title>
+<style>
+:root{
+  --night:#0f1114;
+  --night2:#17191f;
+  --paper:#ddd5c5;
+  --ink:#eee9df;
+  --muted:#9f9b95;
+  --gold:#b7a170;
+  --line:rgba(255,255,255,.10);
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;
+  min-height:100vh;
+  overflow-x:hidden;
+  color:var(--ink);
+  font-family:"Courier New","Malgun Gothic",monospace;
+  background:
+    radial-gradient(circle at 50% -12%,rgba(126,139,155,.18),transparent 43%),
+    linear-gradient(180deg,var(--night),var(--night2));
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:18px 10px 54px;
+}
+.fog{
+  position:fixed; inset:0; pointer-events:none;
+  background:
+    radial-gradient(circle at 10% 35%,rgba(215,220,226,.09),transparent 35%),
+    radial-gradient(circle at 90% 68%,rgba(200,205,212,.07),transparent 38%);
+  filter:blur(30px);
+}
+.rain-visual{position:fixed;inset:0;pointer-events:none;overflow:hidden;opacity:.16}
+.rain-line{
+  position:absolute;top:-18vh;left:var(--x);width:1px;height:var(--h);
+  background:linear-gradient(transparent,rgba(210,215,222,.46));
+  transform:rotate(6deg);
+  animation:rainFall var(--t) linear infinite;
+  animation-delay:var(--d);
+}
+@keyframes rainFall{to{transform:translate(-20px,125vh) rotate(6deg)}}
+
+.app{
+  width:100%;max-width:470px;position:relative;
+  background:rgba(25,27,32,.96);
+  border:1px solid #625d57;
+  border-radius:22px;
+  padding:25px 18px 24px;
+  box-shadow:0 24px 52px rgba(0,0,0,.64);
+}
+.header{text-align:center;margin-bottom:15px}
+.title{
+  margin:0;font-family:"바탕","Batang",serif;font-size:1.42rem;
+  color:var(--paper);letter-spacing:2px
+}
+.sub{margin:8px 0 0;color:var(--muted);font-size:.74rem;line-height:1.7}
+.rain-btn{
+  margin:11px auto 0;padding:6px 12px;border-radius:999px;
+  border:1px solid rgba(183,161,112,.35);
+  background:rgba(0,0,0,.25);color:var(--gold);font:inherit;font-size:.69rem;cursor:pointer
+}
+.rain-btn.on{background:var(--gold);color:#131313;font-weight:700}
+
+/* ---------- 무대 / 진짜 앉아 있는 레이어 ---------- */
+.doll-stage{
+  position:relative;height:245px;overflow:hidden;margin:5px 0 14px;
+  border:1px solid rgba(130,135,142,.23);border-radius:18px;
+  background:
+    radial-gradient(circle at 50% 48%,rgba(195,201,210,.11),transparent 38%),
+    linear-gradient(180deg,rgba(255,255,255,.01),rgba(0,0,0,.28));
+}
+.ground-shadow{
+  position:absolute;z-index:0;left:50%;bottom:17px;
+  width:205px;height:26px;transform:translateX(-50%);
+  border-radius:50%;background:rgba(0,0,0,.52);filter:blur(7px)
+}
+
+/* 뒤쪽 나무: 인형 몸 뒤 */
+.stump-back{
+  position:absolute;z-index:1;left:50%;bottom:24px;
+  width:188px;height:58px;transform:translateX(-50%);
+  border-radius:52% 52% 34% 34%;
+  background:
+    radial-gradient(ellipse at 50% 23%,#79644f 0 12%,#624f3f 43%,#46382e 76%),
+    #4a3a30;
+  border:2px solid #392e27;
+  box-shadow:inset 0 3px 0 rgba(220,195,160,.12)
+}
+.stump-back::before{
+  content:"";position:absolute;left:18px;right:18px;top:8px;height:16px;
+  border:1px solid rgba(45,35,28,.48);border-radius:50%
+}
+.stump-back::after{
+  content:"";position:absolute;left:25px;bottom:1px;width:32px;height:9px;
+  border-radius:50%;background:#2e4634;box-shadow:82px 1px 0 #2a4131;opacity:.8
+}
+
+/* 인형은 나무 윗면과 겹치게 낮춤 */
+.doll-wrap{
+  position:absolute;z-index:2;left:50%;bottom:29px;
+  width:146px;height:184px;transform:translateX(-50%);
+  transform-origin:50% 68%;
+  filter:drop-shadow(0 8px 8px rgba(0,0,0,.38))
+}
+.doll-svg{width:100%;height:100%;overflow:visible}
+
+/* 앞쪽 나무 테두리: 배/엉덩이 일부를 가려서 '앉음'을 만듦 */
+.stump-front{
+  position:absolute;z-index:3;left:50%;bottom:23px;
+  width:188px;height:26px;transform:translateX(-50%);
+  border-radius:0 0 45% 45%;
+  background:linear-gradient(180deg,rgba(86,68,54,.92),#44362d);
+  border:0 solid #392e27;border-width:0 2px 2px;
+  pointer-events:none
+}
+.stump-front::before{
+  content:"";position:absolute;left:0;right:0;top:-6px;height:12px;
+  border-radius:50%;border-bottom:1px solid rgba(37,29,24,.52)
+}
+
+.doll-stage.nodding .doll-wrap{animation:nodTwice .9s ease-in-out}
+@keyframes nodTwice{
+  0%{transform:translateX(-50%) rotate(0)}
+  16%{transform:translateX(-50%) translateY(5px) rotate(6deg)}
+  30%{transform:translateX(-50%) rotate(0)}
+  46%{transform:translateX(-50%) translateY(5px) rotate(6deg)}
+  62%,100%{transform:translateX(-50%) rotate(0)}
+}
+
+.doll-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}
+.tab{
+  padding:10px 4px;border-radius:12px;border:1px solid rgba(255,255,255,.08);
+  background:rgba(0,0,0,.24);color:var(--muted);font:inherit;font-size:.69rem;cursor:pointer
+}
+.tab.active{border-color:var(--gold);color:var(--gold);background:rgba(183,161,112,.10);font-weight:700}
+.role{display:block;margin-top:3px;font-size:.57rem;color:#807e7a}
+.tab.active .role{color:#c8b88f}
+
+.bubble{
+  min-height:77px;margin-bottom:15px;padding:14px 15px;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  border:1px solid rgba(183,161,112,.24);border-radius:14px;
+  background:rgba(8,9,12,.70);color:var(--paper);font-size:.81rem;line-height:1.72
+}
+.form{display:grid;gap:10px}
+.label{margin:3px 0 -3px;color:#c7c0b7;font-size:.68rem}
+textarea,select{
+  width:100%;border:1px solid rgba(255,255,255,.12);border-radius:12px;
+  background:rgba(0,0,0,.33);color:var(--ink);font:inherit;font-size:.81rem;outline:none
+}
+textarea{min-height:88px;padding:12px;resize:vertical;line-height:1.6}
+select{height:46px;padding:0 10px}
+textarea:focus,select:focus{border-color:var(--gold)}
+.btn{
+  width:100%;padding:12px;border:1px solid var(--gold);border-radius:12px;
+  background:rgba(183,161,112,.09);color:var(--gold);font:inherit;font-size:.8rem;
+  font-weight:700;cursor:pointer
+}
+.btn:hover:not(:disabled){background:var(--gold);color:#111}
+.btn:disabled{opacity:.45;cursor:default}
+
+/* ---------- 선택형 대화 ---------- */
+.dialogue-step{
+  display:none;margin-top:16px;padding-top:15px;border-top:1px dashed rgba(255,255,255,.10)
+}
+.dialogue-step.show{display:block}
+.question-title{font-size:.72rem;color:#bdb7ad;margin-bottom:9px;line-height:1.6}
+.choice-grid{display:grid;gap:8px}
+.choice{
+  width:100%;padding:11px 12px;text-align:left;border-radius:10px;
+  border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.24);
+  color:#d7d1c7;font:inherit;font-size:.76rem;line-height:1.45;cursor:pointer
+}
+.choice:hover,.choice.selected{border-color:var(--gold);background:rgba(183,161,112,.10);color:#e8ddc4}
+
+.last-note{display:none;margin-top:14px}
+.last-note.show{display:block}
+.last-note textarea{min-height:78px}
+.hint{font-size:.61rem;color:#777b82;line-height:1.55;margin-top:5px}
+
+/* ---------- 편지 ---------- */
+.letter{
+  display:none;margin-top:18px;padding:20px 18px;border:1px solid rgba(183,161,112,.42);
+  border-radius:8px;color:#403a34;
+  background:
+    repeating-linear-gradient(0deg,transparent 0 30px,rgba(90,80,66,.08) 30px 31px),
+    linear-gradient(#dad2c1,#cdc3af);
+  box-shadow:7px 9px 0 rgba(0,0,0,.14);transform:rotate(-.3deg)
+}
+.letter.show{display:block}
+.letter-tag{font-size:.57rem;color:#766d61;letter-spacing:.09em;margin-bottom:8px}
+.letter h2{margin:0 0 10px;font-family:"바탕","Batang",serif;font-size:1rem}
+.letter p{margin:0;font-family:"바탕","Batang",serif;font-size:.89rem;line-height:1.88;word-break:keep-all}
+.closure{
+  margin-top:12px;padding-top:11px;border-top:1px dashed rgba(78,67,55,.25);
+  font-family:"바탕","Batang",serif;font-size:.82rem;line-height:1.72;color:#5c5349
+}
+
+/* ---------- 보관 ---------- */
+.archive{margin-top:21px;padding-top:16px;border-top:1px dashed rgba(255,255,255,.11)}
+.archive-title{font-size:.71rem;color:var(--muted);letter-spacing:1px;margin-bottom:10px}
+.worry-list{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-height:285px;overflow:auto}
+.worry-item{
+  position:relative;overflow:hidden;padding:10px 11px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.24);font-size:.75rem
+}
+.worry-top{display:flex;gap:10px;justify-content:space-between}
+.worry-text{line-height:1.55;word-break:break-word}
+.worry-date{font-size:.63rem;color:var(--muted);white-space:nowrap}
+.worry-meta{margin-top:5px;color:#8d8a85;font-size:.62rem;line-height:1.5}
+.saved-note{margin-top:7px;padding:7px 8px;border-left:2px solid rgba(183,161,112,.33);color:#aaa49a;font-size:.66rem;line-height:1.5}
+.release-btn{
+  width:100%;margin-top:9px;padding:8px;border-radius:8px;
+  border:1px solid rgba(183,161,112,.28);background:rgba(183,161,112,.05);
+  color:#b7a170;font:inherit;font-size:.66rem;cursor:pointer
+}
+.release-status{display:none;margin-top:9px;min-height:20px;text-align:center;color:#c9b98f;font-size:.69rem}
+.release-status.show{display:block}
+.worry-item.releasing{border-color:rgba(183,161,112,.32)}
+.release-fade{animation:cardFade .8s ease forwards}
+@keyframes cardFade{to{opacity:0;transform:translateY(-8px);filter:blur(4px)}}
+
+/* 글자 가루 */
+.dust-char{
+  position:fixed;z-index:9999;pointer-events:none;color:#ddd5c5;
+  font-family:"Courier New","Malgun Gothic",monospace;font-size:.75rem;line-height:1;
+  text-shadow:0 0 7px rgba(220,212,196,.25);
+  animation:dustFly var(--duration) cubic-bezier(.18,.72,.24,1) forwards;
+  animation-delay:var(--delay)
+}
+@keyframes dustFly{
+  0%{opacity:1;transform:translate(0,0) rotate(0) scale(1);filter:blur(0)}
+  55%{opacity:.78}
+  100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rot)) scale(.42);filter:blur(4px)}
+}
+
+.note{margin-top:10px;text-align:center;color:#71757b;font-size:.6rem;line-height:1.55}
+@media(max-width:480px){.app{padding:23px 14px 20px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important}}
+</style>
+</head>
+<body>
+<div class="fog"></div>
+<div id="rainVisual" class="rain-visual" aria-hidden="true"></div>
+
+<main class="app">
+  <header class="header">
+    <h1 class="title">안개숲 걱정인형</h1>
+    <p class="sub">
+      걱정을 말로 꺼내어 잠시 인형에게 맡겨두세요.<br>
+      해결되지 않아도 괜찮습니다.
+    </p>
+    <button id="rainBtn" class="rain-btn" type="button">RAIN · OFF</button>
+  </header>
+
+  <section id="dollStage" class="doll-stage">
+    <div class="ground-shadow"></div>
+    <div class="stump-back"></div>
+    <div class="doll-wrap">
+      <svg id="dollSvg" class="doll-svg" viewBox="0 0 120 160"></svg>
+    </div>
+    <div class="stump-front"></div>
+  </section>
+
+  <div class="doll-tabs">
+    <button class="tab active" data-doll="bear">STITCH<span class="role">해결형</span></button>
+    <button class="tab" data-doll="rabbit">LONG EAR<span class="role">공감형</span></button>
+    <button class="tab" data-doll="moon">MOON<span class="role">사색형</span></button>
+  </div>
+
+  <div id="bubble" class="bubble">
+    "말이 정리되지 않아도 괜찮아. 오늘 맡기고 싶은 걱정을 건네줘."
+  </div>
+
+  <section class="form">
+    <div class="label">고민 분야</div>
+    <select id="categoryInput">
+      <option value="relation">연애 · 인간관계</option>
+      <option value="work">일 · 학업</option>
+      <option value="money">돈 · 생활</option>
+      <option value="health">건강 · 컨디션</option>
+      <option value="future">미래 · 불안</option>
+      <option value="self">나 자신 · 마음</option>
+      <option value="other">기타</option>
+    </select>
+
+    <div class="label">숲에 맡길 걱정</div>
+    <textarea id="worryInput" placeholder="지금 마음을 가장 무겁게 하는 일을 적어주세요."></textarea>
+
+    <div class="label">이 걱정을 지금 어떻게 다뤄주면 좋을까?</div>
+    <select id="modeInput">
+      <option value="reframe">조금 다른 방향으로 바라보고 싶어</option>
+      <option value="release">지금은 머리에서 잠시 내려놓고 싶어</option>
+      <option value="talk">해결보다 그냥 말하고 싶어</option>
+    </select>
+
+    <button id="feedBtn" class="btn" type="button">걱정을 인형에게 건네기</button>
+  </section>
+
+  <section id="dialogueStep" class="dialogue-step">
+    <div id="questionTitle" class="question-title"></div>
+    <div id="choiceGrid" class="choice-grid"></div>
+
+    <div id="lastNote" class="last-note">
+      <div class="label">이 걱정에 마지막으로 남겨둘 말 (선택)</div>
+      <textarea id="lastNoteInput" placeholder="인형에게 더 남기고 싶은 말이 있다면 적어주세요."></textarea>
+      <div class="hint">
+        이 글은 답변을 만들기 위한 분석에 쓰이지 않고, 당신이 남긴 기록으로만 보관됩니다.
+      </div>
+      <button id="sealBtn" class="btn" type="button" style="margin-top:10px">이 걱정을 잠시 맡겨두기</button>
+    </div>
+  </section>
+
+  <section id="letter" class="letter" aria-live="polite">
+    <div id="letterTag" class="letter-tag">FROM THE DOLL</div>
+    <h2>걱정인형이 남긴 말</h2>
+    <p id="letterBody"></p>
+    <div id="closure" class="closure"></div>
+  </section>
+
+  <section class="archive">
+    <div class="archive-title">SEALED WORRIES</div>
+    <ul id="worryList" class="worry-list"></ul>
+  </section>
+
+  <p class="note">
+    이 버전은 AI 없이 작동합니다. 사용자가 고른 분야와 원하는 대응 방식, 선택지를 기준으로 다른 반응을 보여줍니다.
+  </p>
+</main>
+
+<script>
+// ---------- 가는 백색소음 계열 ----------
+let audioContext, rainSource, rainGain, highpass, lowpass;
+let rainOn=false;
+
+function makeRainBuffer(){
+  const sr=audioContext.sampleRate;
+  const buffer=audioContext.createBuffer(1,sr*2.2,sr);
+  const data=buffer.getChannelData(0);
+  let prev=0;
+  for(let i=0;i<data.length;i++){
+    const white=Math.random()*2-1;
+    prev=prev*.12+white*.88;
+    data[i]=prev*.38;
+  }
+  return buffer;
+}
+function startRain(){
+  if(!audioContext) audioContext=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioContext.state==="suspended") audioContext.resume();
+  if(rainSource) return;
+  rainSource=audioContext.createBufferSource();
+  rainGain=audioContext.createGain();
+  highpass=audioContext.createBiquadFilter();
+  lowpass=audioContext.createBiquadFilter();
+  rainSource.buffer=makeRainBuffer(); rainSource.loop=true;
+  highpass.type="highpass"; highpass.frequency.value=850;
+  lowpass.type="lowpass"; lowpass.frequency.value=6500;
+  rainGain.gain.value=.04;
+  rainSource.connect(highpass).connect(lowpass).connect(rainGain).connect(audioContext.destination);
+  rainSource.start();
+}
+function stopRain(){if(rainSource){try{rainSource.stop()}catch(e){} rainSource=null}}
+document.getElementById("rainBtn").addEventListener("click",function(){
+  rainOn=!rainOn; this.classList.toggle("on",rainOn);
+  this.textContent=rainOn?"RAIN · ON":"RAIN · OFF";
+  rainOn?startRain():stopRain();
+});
+
+// ---------- 화면 비 ----------
+const rainVisual=document.getElementById("rainVisual");
+function buildRain(){
+  const f=document.createDocumentFragment(), count=window.innerWidth<520?22:36;
+  for(let i=0;i<count;i++){
+    const s=document.createElement("span"); s.className="rain-line";
+    s.style.setProperty("--x",`${Math.random()*100}%`);
+    s.style.setProperty("--h",`${36+Math.random()*60}px`);
+    s.style.setProperty("--t",`${1.6+Math.random()*2.5}s`);
+    s.style.setProperty("--d",`${-Math.random()*4}s`);
+    f.appendChild(s);
+  }
+  rainVisual.replaceChildren(f);
+}
+buildRain(); window.addEventListener("resize",buildRain);
+
+// ---------- 인형 ----------
+const skins={
+bear:`
+  <!-- 뒤쪽 귀 -->
+  <ellipse cx="28" cy="31" rx="14" ry="14" fill="#685b52" stroke="#b7a170" stroke-width="2"/>
+  <ellipse cx="92" cy="31" rx="14" ry="14" fill="#685b52" stroke="#b7a170" stroke-width="2"/>
+
+  <!-- 몸은 먼저 그려서 머리 뒤로 들어가게 -->
+  <ellipse cx="60" cy="105" rx="29" ry="24" fill="#685b52" stroke="#b7a170" stroke-width="2"/>
+
+  <!-- 팔은 몸 아래쪽에 붙임 -->
+  <ellipse cx="37" cy="108" rx="11" ry="7" fill="#584c44" transform="rotate(12 37 108)"/>
+  <ellipse cx="83" cy="108" rx="11" ry="7" fill="#584c44" transform="rotate(-12 83 108)"/>
+
+  <!-- 앉은 다리 -->
+  <ellipse cx="39" cy="127" rx="17" ry="9" fill="#4a4039" transform="rotate(7 39 127)"/>
+  <ellipse cx="81" cy="127" rx="17" ry="9" fill="#4a4039" transform="rotate(-7 81 127)"/>
+
+  <!-- 큰 머리를 몸 위에 겹쳐 전면으로 -->
+  <ellipse cx="60" cy="59" rx="47" ry="43" fill="#786a5e" stroke="#b7a170" stroke-width="2.5"/>
+
+  <!-- 얼굴 -->
+  <circle cx="43" cy="55" r="9" fill="#1e1c1a" stroke="#b7a170" stroke-width="1.5"/>
+  <line x1="38" y1="50" x2="48" y2="60" stroke="#d8d0bf" stroke-width="2.4"/>
+  <line x1="48" y1="50" x2="38" y2="60" stroke="#d8d0bf" stroke-width="2.4"/>
+
+  <circle cx="77" cy="55" r="9" fill="#1e1c1a" stroke="#b7a170" stroke-width="1.5"/>
+  <line x1="72" y1="50" x2="82" y2="60" stroke="#d8d0bf" stroke-width="2.4"/>
+  <line x1="82" y1="50" x2="72" y2="60" stroke="#d8d0bf" stroke-width="2.4"/>
+
+  <path d="M47 76 Q60 86 73 76" fill="none" stroke="#25201c" stroke-width="2"/>
+`,
+rabbit:`
+  <!-- 긴 귀는 뒤 레이어 -->
+  <path d="M29 44 C8 58 11 112 27 107 C34 100 37 62 39 48 Z"
+        fill="#5f536c" stroke="#b7a170" stroke-width="2"/>
+  <path d="M91 44 C112 58 109 112 93 107 C86 100 83 62 81 48 Z"
+        fill="#5f536c" stroke="#b7a170" stroke-width="2"/>
+
+  <!-- 몸 -->
+  <ellipse cx="60" cy="105" rx="29" ry="24" fill="#554a61" stroke="#b7a170" stroke-width="2"/>
+
+  <!-- 팔 -->
+  <ellipse cx="37" cy="108" rx="11" ry="7" fill="#473d51" transform="rotate(12 37 108)"/>
+  <ellipse cx="83" cy="108" rx="11" ry="7" fill="#473d51" transform="rotate(-12 83 108)"/>
+
+  <!-- 다리 -->
+  <ellipse cx="39" cy="127" rx="17" ry="9" fill="#3a3342" transform="rotate(7 39 127)"/>
+  <ellipse cx="81" cy="127" rx="17" ry="9" fill="#3a3342" transform="rotate(-7 81 127)"/>
+
+  <!-- 큰 머리 전면 -->
+  <ellipse cx="60" cy="59" rx="46" ry="42" fill="#6d6078" stroke="#b7a170" stroke-width="2.5"/>
+
+  <!-- 얼굴 -->
+  <circle cx="43" cy="55" r="9" fill="#1e1c1a" stroke="#b7a170" stroke-width="1.5"/>
+  <line x1="38" y1="50" x2="48" y2="60" stroke="#d8d0bf" stroke-width="2.4"/>
+  <line x1="48" y1="50" x2="38" y2="60" stroke="#d8d0bf" stroke-width="2.4"/>
+
+  <circle cx="77" cy="55" r="9" fill="#1e1c1a" stroke="#b7a170" stroke-width="1.5"/>
+  <line x1="72" y1="50" x2="82" y2="60" stroke="#d8d0bf" stroke-width="2.4"/>
+  <line x1="82" y1="50" x2="72" y2="60" stroke="#d8d0bf" stroke-width="2.4"/>
+
+  <path d="M49 76 Q60 82 71 76" fill="none" stroke="#25201c" stroke-width="2"/>
+`,
+moon:`
+  <!-- 몸 -->
+  <ellipse cx="60" cy="105" rx="29" ry="24" fill="#1e2d49" stroke="#8fa2c9" stroke-width="2"/>
+
+  <!-- 팔 -->
+  <ellipse cx="37" cy="108" rx="11" ry="7" fill="#18243c" transform="rotate(12 37 108)"/>
+  <ellipse cx="83" cy="108" rx="11" ry="7" fill="#18243c" transform="rotate(-12 83 108)"/>
+
+  <!-- 다리 -->
+  <ellipse cx="39" cy="127" rx="17" ry="9" fill="#131d31" transform="rotate(7 39 127)"/>
+  <ellipse cx="81" cy="127" rx="17" ry="9" fill="#131d31" transform="rotate(-7 81 127)"/>
+
+  <!-- 큰 남색 머리 전면 -->
+  <ellipse cx="60" cy="59" rx="47" ry="43" fill="#263653" stroke="#9aabd0" stroke-width="2.5"/>
+
+  <!-- 달 장식 -->
+  <path d="M38 25 Q60 11 82 25 Q72 31 60 25 Q48 31 38 25 Z"
+        fill="#40547c" stroke="#a6b5d7" stroke-width="1.5"/>
+  <path d="M63 21 C56 22 52 27 52 33 C52 39 57 43 63 43
+           C59 40 57 37 57 33 C57 28 59 24 63 21 Z"
+        fill="#d4dcf0"/>
+
+  <!-- 얼굴 -->
+  <circle cx="43" cy="55" r="9" fill="#101727" stroke="#a6b5d7" stroke-width="1.5"/>
+  <line x1="38" y1="50" x2="48" y2="60" stroke="#dce4f5" stroke-width="2.4"/>
+  <line x1="48" y1="50" x2="38" y2="60" stroke="#dce4f5" stroke-width="2.4"/>
+
+  <circle cx="77" cy="55" r="9" fill="#101727" stroke="#a6b5d7" stroke-width="1.5"/>
+  <line x1="72" y1="50" x2="82" y2="60" stroke="#dce4f5" stroke-width="2.4"/>
+  <line x1="82" y1="50" x2="72" y2="60" stroke="#dce4f5" stroke-width="2.4"/>
+
+  <path d="M47 76 Q60 85 73 76" fill="none" stroke="#101727" stroke-width="2"/>
+`};
+
+const personas={
+ bear:{name:"STITCH",role:"해결형",start:"지금 할 수 있는 만큼만 잘라서 보자.",end:"답을 다 찾지 않아도 돼. 다음에 할 수 있는 한 가지만 기억해."},
+ rabbit:{name:"LONG EAR",role:"공감형",start:"정리되지 않은 말도 괜찮아. 나는 끝까지 들을게.",end:"해결되지 않아도 괜찮아. 네가 여기까지 말해준 건 내가 들었어."},
+ moon:{name:"MOON",role:"사색형",start:"조금 멀리서 보면 다른 윤곽이 보일 때가 있어.",end:"걱정은 그대로일지 몰라도, 이제 그것을 바라보는 자리가 조금 달라졌을 거야."}
+};
+
+const handlingModes={
+ reframe:{
+  label:"다른 방향으로 바라보기",
+  preview:{
+   bear:"좋아. 걱정 전체를 뒤집기보다, 지금 다르게 볼 수 있는 한 부분만 찾아보자.",
+   rabbit:"억지로 긍정적으로 바꾸지 않아도 돼. 지금보다 덜 아픈 방향이 있는지만 같이 보자.",
+   moon:"조금 멀리서 보면 다른 윤곽이 보일 때가 있어. 바라보는 자리를 잠시 옮겨보자."
+  },
+  closure:{
+   bear:"답을 다 찾지 않아도 돼. 다음에 손댈 수 있는 한 부분만 기억해도 충분해.",
+   rabbit:"좋게 생각하지 못해도 괜찮아. 네 마음이 조금 덜 무거워지는 쪽이면 충분해.",
+   moon:"걱정이 그대로여도, 그것을 바라보는 자리는 조금 달라졌을 수 있어."
+  }
+ },
+ release:{
+  label:"잠시 내려놓기",
+  preview:{
+   bear:"오늘 당장 처리하지 않아도 되는 부분은 여기 내려놓자. 계속 들고 있을 필요는 없어.",
+   rabbit:"완전히 사라지지 않아도 괜찮아. 지금은 내가 잠시 대신 들어줄게.",
+   moon:"바라보지 않는 시간도 하나의 거리야. 잠시 시야 밖에 두어도 괜찮아."
+  },
+  closure:{
+   bear:"오늘은 여기까지만 두자. 다시 꺼낼 때까지 이 걱정은 봉인해둘게.",
+   rabbit:"지금은 네가 내려놓아도 괜찮아. 이 말은 내가 잠시 맡아둘게.",
+   moon:"없어진 것이 아니라 잠시 멀어진 거야. 오늘은 그 거리만으로 충분해."
+  }
+ },
+ talk:{
+  label:"그냥 말하기",
+  preview:{
+   bear:"알겠어. 오늘은 해결책을 만들지 않을게. 네가 말하고 싶었던 내용 그대로 받아둘게.",
+   rabbit:"응, 그냥 말하고 싶었던 거구나. 정리하거나 고치지 않아도 돼. 나는 끝까지 들을게.",
+   moon:"말로 꺼낸 순간, 걱정은 머릿속에서만 돌던 때와는 다른 모양이 돼. 오늘은 그걸로 충분해."
+  },
+  closure:{
+   bear:"오늘은 답 대신 네가 남긴 말만 조용히 보관해둘게.",
+   rabbit:"해결되지 않아도 괜찮아. 네가 여기까지 말해준 건 내가 들었어.",
+   moon:"결론을 만들지 않아도, 꺼내어 놓은 말은 이미 자리를 바꿨어."
+  }
+ }
+};
+
+// 이전 버전에 저장된 기록도 보관함에서 알아볼 수 있게 남겨둔 이름입니다.
+const legacyConstraintLabels={
+ changeable:"바꿀 수 있음 · 이전 기록",
+ limited:"제약이 있음 · 이전 기록",
+ stuck:"지금은 어려움 · 이전 기록",
+ unsure:"잘 모르겠음 · 이전 기록"
+};
+
+const categories={
+relation:{
+ label:"연애 · 인간관계",
+ question:"지금 이 관계에서 가장 마음을 잡아끄는 건 어느 쪽이야?",
+ choices:[
+  {id:"hurt",label:"서운하거나 상처받은 마음",bear:"상대의 마음을 맞히기보다 네가 지킬 기준을 먼저 정해보자.",rabbit:"서운했던 마음을 작게 만들지 않아도 돼. 그 감정은 이미 충분히 이유가 있어.",moon:"상대의 반응과 네 가치가 같은 것은 아니야. 두 문장을 잠시 떼어놓고 보자."},
+  {id:"contact",label:"연락하거나 말해야 할지 고민됨",bear:"연락 자체보다 네가 전달하고 싶은 핵심 한 문장을 먼저 정해보자.",rabbit:"말하기 두려운 이유가 있다면 그 두려움도 관계의 일부야. 억지로 용감해질 필요는 없어.",moon:"지금 연락하고 싶은 마음과 연락해야 한다는 압박이 같은지 한 번 나눠보자."},
+  {id:"distance",label:"거리를 둬야 할지 모르겠음",bear:"거리 두기의 기준을 상대의 반응이 아니라 네가 버틸 수 있는 선으로 정해보자.",rabbit:"멀어지고 싶은 마음이 생겼다면 그만큼 지쳤을 수도 있어. 그 피로를 먼저 인정해도 돼.",moon:"거리는 끝이라는 뜻만은 아니야. 관계를 다른 크기로 바라보기 위한 공간일 수도 있어."},
+  {id:"unclear",label:"상대의 마음을 모르겠음",bear:"추측보다 직접 확인 가능한 행동과 말만 따로 적어보자.",rabbit:"모르기 때문에 불안한 거구나. 답이 없는 상태를 혼자 견디는 것도 힘든 일이야.",moon:"모르는 부분을 가장 나쁜 이야기로 채우고 있지는 않은지 살펴보자."}
+]},
+work:{
+ label:"일 · 학업",
+ question:"지금 제일 막히는 건 어느 쪽에 가까워?",
+ choices:[
+  {id:"time",label:"시간이 부족해",bear:"해야 할 일을 '오늘 반드시'와 '미뤄도 됨'으로 둘로만 나누자.",rabbit:"시간에 쫓기면 쉬는 순간조차 죄책감이 들 수 있어. 그 압박부터 너무 당연하게 여기지 않았으면 해.",moon:"시간이 부족한 것과 네 능력이 부족한 것은 다른 문제야."},
+  {id:"energy",label:"체력이 없어",bear:"지금은 일을 더 쪼개는 것보다 체력을 덜 쓰는 방법을 먼저 찾자. 반드시 해야 하는 것 하나만 남겨도 돼.",rabbit:"몸과 마음이 지쳤는데 계속 해내야 한다는 게 제일 힘든 거구나. 못 버티는 게 의지 부족은 아니야.",moon:"체력이 떨어진 상태에서 내린 자기평가를 너무 믿지는 말자."},
+  {id:"order",label:"무엇부터 해야 할지 모르겠어",bear:"가장 급한 것 하나, 가장 작은 것 하나 중 하나를 골라 시작점으로 삼자.",rabbit:"해야 할 것이 많으면 시작조차 막힐 수 있어. 그 멈춤을 게으름이라고 부르지 않았으면 해.",moon:"모든 일이 동시에 중요해 보일 때는 우선순위가 사라져. 하나를 고르는 건 나머지를 포기하는 게 아니야."},
+  {id:"people",label:"사람 때문에 힘들어",bear:"일 자체와 사람 문제를 분리해서, 네가 통제할 수 있는 대응 하나만 잡아보자.",rabbit:"일보다 사람 때문에 지친 거라면 훨씬 오래 마음에 남을 수 있어. 그 피로도 진짜야.",moon:"누군가의 태도가 네 능력 평가로 번역되고 있지는 않은지 살펴보자."}
+]},
+money:{
+ label:"돈 · 생활",
+ question:"이 걱정에서 가장 크게 느껴지는 건 뭐야?",
+ choices:[
+  {id:"short",label:"당장 돈이 부족해",bear:"지금 확인 가능한 금액과 꼭 필요한 지출부터 적어보자. 막연함을 숫자로 줄이는 게 첫 단계야.",rabbit:"생활에 바로 닿는 걱정이라 더 무겁게 느껴지는 게 당연해.",moon:"현재의 부족함과 미래 전체가 막혔다는 결론은 같은 말이 아니야."},
+  {id:"spend",label:"지출을 줄이기 어려워",bear:"전부 줄이기보다 한 항목만 조정 가능한지 보자.",rabbit:"돈을 썼다는 이유만으로 스스로를 몰아붙이면 걱정이 두 겹이 돼.",moon:"꼭 필요해서 쓴 돈인데도, 돈을 썼다는 이유만으로 스스로를 탓하고 있지는 않은지 생각해보자."},
+  {id:"futuremoney",label:"앞으로가 불안해",bear:"이번 달이나 이번 주처럼 확인 가능한 범위로 미래를 줄여보자.",rabbit:"아직 오지 않은 생활을 오래 걱정하느라 이미 지쳤을 수도 있어.",moon:"가능성과 확정은 다른 말이야. 아직 정해지지 않은 것은 그대로 남겨둬도 돼."},
+  {id:"compare",label:"남들과 비교하게 돼",bear:"비교 대신 네 생활에서 필요한 기준을 하나 정해보자.",rabbit:"비교할수록 부족한 것만 보이기 쉬워. 네가 견뎌온 생활도 같이 봐줬으면 해.",moon:"다른 사람의 숫자가 네 삶의 척도가 될 필요는 없어."}
+]},
+health:{
+ label:"건강 · 컨디션",
+ question:"지금 가장 가까운 상태는 어느 쪽이야?",
+ choices:[
+  {id:"must",label:"몸이 안 좋은데 계속 해야 해",bear:"지금 떠날 수 없다면 그 조건을 무시하지 않을게. 가능한 범위에서 업무나 움직임을 줄이고, 주변에 상태를 알릴 수 있는지 먼저 보자.",rabbit:"아픈데도 계속 해야 한다는 상황 자체가 버거운 거야. 혼자 참고 있다는 느낌이 크다면 누군가에게 알려도 돼.",moon:"지금은 추상적인 위로보다 몸의 신호와 현실의 제약을 같이 보는 게 먼저야."},
+  {id:"symptom",label:"증상 자체가 걱정돼",bear:"증상이 계속되거나 걱정될 정도라면 무리해서 버티기보다 적절한 도움을 확인하는 쪽이 좋아.",rabbit:"몸이 보내는 신호를 '별일 아니겠지' 하며 혼자 눌러두지 않았으면 해.",moon:"몸의 신호는 마음의 결론보다 먼저 확인할 가치가 있어."},
+  {id:"restless",label:"쉴 수가 없어",bear:"쉬라는 말만 던지지 않을게. 지금 자리에서 줄일 수 있는 부담이나 잠깐 맡길 수 있는 일이 있는지 보자.",rabbit:"쉴 수 없다는 조건까지 있으니 더 답답한 거구나. 그 상황을 네 탓으로 돌리지 않았으면 해.",moon:"선택지가 적은 상황에서는 완벽한 해결보다 안전을 지킬 작은 틈을 찾는 게 중요해."},
+  {id:"unknownbody",label:"왜 이런지 모르겠어",bear:"원인을 단정하지 말고 지금 나타나는 증상과 지속 시간을 먼저 확인해두자.",rabbit:"이유를 모르니까 더 불안할 수 있어. 그 불확실함도 충분히 힘든 부분이야.",moon:"모르는 것을 가장 나쁜 결론으로 바로 채우지 말고, 확인할 수 있는 사실부터 남겨두자."}
+]},
+future:{
+ label:"미래 · 불안",
+ question:"미래를 생각할 때 가장 먼저 올라오는 건 뭐야?",
+ choices:[
+  {id:"failure",label:"실패할까 봐 무서워",bear:"실패 전체보다 지금 준비할 수 있는 한 단계를 정해보자.",rabbit:"잘하고 싶은 마음이 큰 만큼 실패가 더 크게 느껴지는 거구나.",moon:"가능한 실패와 확정된 실패는 같은 것이 아니야."},
+  {id:"unknown",label:"아무것도 확실하지 않아",bear:"확실히 아는 사실 하나와 아직 모르는 것 하나를 나눠 적어보자.",rabbit:"답이 없는 상태를 오래 견디는 것도 피곤한 일이야.",moon:"빈칸을 가장 어두운 이야기로 채우고 있지는 않은지 살펴보자."},
+  {id:"late",label:"나만 늦는 것 같아",bear:"다른 사람의 속도 대신 네가 지금 움직일 수 있는 다음 한 칸을 보자.",rabbit:"뒤처진다는 느낌은 실제 속도보다 더 아프게 다가올 수 있어.",moon:"삶의 순서표가 하나뿐이라는 생각에서 잠시 벗어나도 돼."},
+  {id:"choice",label:"선택을 잘못할까 봐 걱정돼",bear:"되돌릴 수 있는 선택과 되돌리기 어려운 선택을 나눠보자.",rabbit:"완벽한 선택을 해야 한다는 압박 때문에 더 움직이지 못할 수도 있어.",moon:"선택은 미래를 확정하는 문이 아니라 방향을 조금 바꾸는 행위일 때도 많아."}
+]},
+self:{
+ label:"나 자신 · 마음",
+ question:"지금 스스로에게 가장 힘든 부분은 뭐야?",
+ choices:[
+  {id:"critic",label:"자꾸 나를 탓해",bear:"잘못한 점과 스스로를 공격하는 말을 분리해보자. 수정할 행동만 남겨도 돼.",rabbit:"다른 사람에게는 하지 않을 말을 지금 너에게 하고 있는 건 아닌지 봐줬으면 해.",moon:"한 행동에 대한 평가가 너 전체에 대한 판결이 되지 않게 하자."},
+  {id:"low",label:"아무것도 하기 싫어",bear:"오늘의 기준을 아주 낮춰서 하나만 남겨보자.",rabbit:"아무것도 하기 싫을 만큼 지쳤을 수도 있어. 그 상태를 게으름이라고 단정하지 않아도 돼.",moon:"멈춰 있는 시간도 언제나 퇴보를 뜻하지는 않아."},
+  {id:"compare",label:"계속 비교하게 돼",bear:"비교 대상 대신 네가 원하는 기준 하나만 정해보자.",rabbit:"비교할수록 네가 가진 것들은 화면 밖으로 밀려나기 쉬워.",moon:"다른 사람의 위치가 네 위치의 의미를 결정하지는 않아."},
+  {id:"confused",label:"내 마음을 나도 모르겠어",bear:"지금 확실한 감정 하나만 골라도 충분해.",rabbit:"마음을 정확하게 설명하지 못해도 괜찮아. 모르는 상태도 하나의 상태야.",moon:"이름 붙이지 못한 마음을 억지로 결론내리지 않고 잠시 두어도 돼."}
+]},
+other:{
+ label:"기타",
+ question:"이 걱정에서 가장 가까운 느낌은 어느 쪽이야?",
+ choices:[
+  {id:"solve",label:"뭔가 해결해야 할 것 같아",bear:"전부 해결하려 하지 말고 움직일 수 있는 한 부분만 잡아보자.",rabbit:"해결해야 한다는 압박 자체도 걱정을 키울 수 있어.",moon:"문제를 푸는 것과 문제를 바라보는 방식은 별개의 선택일 수 있어."},
+  {id:"hear",label:"누가 그냥 들어줬으면 해",bear:"지금 당장 행동으로 바꾸지 않아도 돼. 먼저 네가 말하고 싶은 핵심을 남겨두자.",rabbit:"설명하지 않아도 괜찮아. 힘들었다는 말을 여기서는 그대로 둬도 돼.",moon:"말로 꺼낸 순간, 걱정은 머릿속에서만 돌던 때와는 다른 모양이 돼."},
+  {id:"stuck",label:"어디서부터 봐야 할지 모르겠어",bear:"가장 확실한 사실 하나부터 시작점으로 잡자.",rabbit:"막막하다는 상태 자체를 먼저 인정해도 괜찮아.",moon:"윤곽이 보이지 않을 때는 결론보다 거리부터 만드는 게 도움이 될 수 있어."},
+  {id:"heavy",label:"그냥 너무 무거워",bear:"무게를 한 번에 없애기보다 오늘 들지 않아도 되는 한 조각을 내려놓자.",rabbit:"이유를 다 설명하지 못해도 무겁다는 느낌은 진짜야.",moon:"무거운 마음이 네 삶 전체의 무게를 뜻하는 것은 아니야."}
+]}
+};
+
+const closureBase="걱정은 아직 그대로일 수도 있어. 그래도 잠시 꺼내어 바라본 만큼, 여기 두고 가도 괜찮아.";
+
+let currentDoll="bear", currentWorry="", currentCategory="relation", currentMode="reframe", selectedChoice=null;
+let worries=JSON.parse(localStorage.getItem("mistWorriesChoiceDialogue")||"[]");
+
+const dollSvg=document.getElementById("dollSvg"), dollStage=document.getElementById("dollStage");
+const bubble=document.getElementById("bubble"), categoryInput=document.getElementById("categoryInput");
+const worryInput=document.getElementById("worryInput"), modeInput=document.getElementById("modeInput");
+const dialogueStep=document.getElementById("dialogueStep"), questionTitle=document.getElementById("questionTitle");
+const choiceGrid=document.getElementById("choiceGrid"), lastNote=document.getElementById("lastNote");
+const lastNoteInput=document.getElementById("lastNoteInput"), letter=document.getElementById("letter");
+const letterTag=document.getElementById("letterTag"), letterBody=document.getElementById("letterBody");
+const closure=document.getElementById("closure"), worryList=document.getElementById("worryList");
+
+function setSkin(){dollSvg.innerHTML=skins[currentDoll]}
+function nod(){dollStage.classList.remove("nodding");void dollStage.offsetWidth;dollStage.classList.add("nodding");setTimeout(()=>dollStage.classList.remove("nodding"),950)}
+setSkin();
+
+document.querySelectorAll(".tab").forEach(tab=>tab.addEventListener("click",function(){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  this.classList.add("active");currentDoll=this.dataset.doll;setSkin();
+  const p=personas[currentDoll];bubble.textContent=`"${p.name}, ${p.role}. ${p.start}"`;
+}));
+
+function makeLetterBody(choice,mode){
+  const specific=choice[currentDoll];
+  const modeReply=mode.preview[currentDoll];
+
+  // 새로운 관점을 원하는 경우에는 기존의 분야별 답변을 함께 보여줍니다.
+  if(currentMode==="reframe") return `${specific} ${modeReply}`;
+
+  // 내려놓기·그냥 말하기를 고른 경우에는 해결 조언을 억지로 붙이지 않습니다.
+  return `네가 말한 건 ‘${choice.label}’에 가까운 걱정이었구나. ${modeReply}`;
+}
+
+document.getElementById("feedBtn").addEventListener("click",()=>{
+  const text=worryInput.value.trim(); if(!text)return;
+  currentWorry=text;currentCategory=categoryInput.value;currentMode=modeInput.value;selectedChoice=null;
+  nod();
+  const c=categories[currentCategory], p=personas[currentDoll];
+  bubble.textContent=`"${p.start} 하나만 골라보자."`;
+  questionTitle.textContent=c.question;
+  choiceGrid.innerHTML="";
+  c.choices.forEach(choice=>{
+    const b=document.createElement("button");b.type="button";b.className="choice";b.textContent=choice.label;
+    b.addEventListener("click",()=>{
+      selectedChoice=choice;
+      document.querySelectorAll(".choice").forEach(x=>x.classList.remove("selected"));b.classList.add("selected");
+      const mode=handlingModes[currentMode];
+      bubble.textContent=currentMode==="reframe"
+        ? `"${choice[currentDoll]}"`
+        : `"${mode.preview[currentDoll]}"`;
+      lastNote.classList.add("show");
+    });
+    choiceGrid.appendChild(b);
+  });
+  dialogueStep.classList.add("show");lastNote.classList.remove("show");letter.classList.remove("show");lastNoteInput.value="";
+  setTimeout(()=>dialogueStep.scrollIntoView({behavior:"smooth",block:"nearest"}),180);
+});
+
+document.getElementById("sealBtn").addEventListener("click",()=>{
+  if(!selectedChoice)return;
+  const p=personas[currentDoll], c=categories[currentCategory], mode=handlingModes[currentMode];
+  letterTag.textContent=`FROM ${p.name} · ${p.role} · ${c.label} · ${mode.label}`;
+  letterBody.textContent=makeLetterBody(selectedChoice,mode);
+  closure.textContent=`${closureBase} ${mode.closure[currentDoll]}`;
+  letter.classList.add("show");
+  const d=new Date(), date=`${d.getMonth()+1}/${d.getDate()}`;
+  worries.unshift({
+    id:Date.now()+Math.random(), text:currentWorry, doll:currentDoll,
+    category:currentCategory,mode:currentMode,choice:selectedChoice.label,
+    note:lastNoteInput.value.trim(),date
+  });
+  localStorage.setItem("mistWorriesChoiceDialogue",JSON.stringify(worries));
+  worryInput.value="";lastNoteInput.value="";dialogueStep.classList.remove("show");
+  bubble.textContent=`"${mode.closure[currentDoll]}"`;renderArchive();
+  setTimeout(()=>letter.scrollIntoView({behavior:"smooth",block:"nearest"}),150);
+});
+
+function releaseTextAsDust(elem, options={}){
+  if(!elem) return;
+
+  const {
+    stripPrefix=true,
+    slower=false,
+    extraDelay=0
+  }=options;
+
+  let raw=elem.textContent;
+
+  if(stripPrefix){
+    raw=raw.replace(/^🔒\s*/,"");
+  }
+
+  const rect=elem.getBoundingClientRect();
+  const fs=parseFloat(getComputedStyle(elem).fontSize)||12;
+  const cw=fs*.9;
+
+  let x=rect.left;
+  let y=rect.top;
+
+  Array.from(raw).forEach((ch,i)=>{
+    if(ch===" "){
+      x+=cw*.7;
+      return;
+    }
+
+    if(x+cw>rect.right){
+      x=rect.left;
+      y+=fs*1.55;
+    }
+
+    const s=document.createElement("span");
+    s.className="dust-char";
+    s.textContent=ch;
+    s.style.left=`${x}px`;
+    s.style.top=`${y}px`;
+
+    const horizontal=slower ? 54 : 80;
+    const minUp=slower ? 75 : 95;
+    const extraUp=slower ? 110 : 155;
+
+    s.style.setProperty("--dx",`${Math.random()*horizontal-horizontal/2}px`);
+    s.style.setProperty("--dy",`${-(minUp+Math.random()*extraUp)}px`);
+    s.style.setProperty("--rot",`${Math.random()*150-75}deg`);
+
+    const charDelay=i*(slower?.038:.025)+Math.random()*.07+extraDelay;
+    s.style.setProperty("--delay",`${charDelay}s`);
+
+    const duration=slower
+      ? 1.9+Math.random()*.9
+      : 1.35+Math.random()*.8;
+
+    s.style.setProperty("--duration",`${duration}s`);
+
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(),4300);
+
+    x+=cw;
+  });
+
+  elem.style.visibility="hidden";
+}
+function releaseWorry(index,li){
+  if(li.classList.contains("releasing"))return;
+
+  li.classList.add("releasing");
+
+  const btn=li.querySelector(".release-btn");
+  const status=li.querySelector(".release-status");
+  const txt=li.querySelector(".worry-text");
+  const savedNote=li.querySelector(".last-saved-note");
+
+  btn.style.display="none";
+  status.classList.add("show");
+  status.textContent="인형이 걱정을 받아 들었다.";
+
+  setTimeout(()=>{
+    status.textContent="냠.";
+  },650);
+
+  setTimeout(()=>{
+    status.textContent="...냠냠.";
+  },1200);
+
+  // 본문이 먼저 가루가 되어 올라감
+  setTimeout(()=>{
+    status.textContent="걱정이 가루가 되어 흩어졌다.";
+    releaseTextAsDust(txt,{
+      stripPrefix:true,
+      slower:false
+    });
+  },1800);
+
+  // 마지막으로 남긴 말이 있다면 조금 늦고 느리게 따라 올라감
+  if(savedNote){
+    setTimeout(()=>{
+      status.textContent="마지막으로 남긴 말도 천천히 따라갔다.";
+      releaseTextAsDust(savedNote,{
+        stripPrefix:false,
+        slower:true
+      });
+    },2450);
+  }
+
+  const fadeAt=savedNote ? 3900 : 3100;
+  const removeAt=savedNote ? 4700 : 3900;
+
+  setTimeout(()=>{
+    status.textContent="이제 여기에는 남아 있지 않아.";
+    li.classList.add("release-fade");
+  },fadeAt);
+
+  setTimeout(()=>{
+    worries.splice(index,1);
+    localStorage.setItem(
+      "mistWorriesChoiceDialogue",
+      JSON.stringify(worries)
+    );
+    renderArchive();
+  },removeAt);
+}
+function renderArchive(){
+  worryList.innerHTML="";
+  worries.forEach((item,index)=>{
+    const li=document.createElement("li");li.className="worry-item";
+    const top=document.createElement("div");top.className="worry-top";
+    const txt=document.createElement("span");txt.className="worry-text";txt.textContent=`🔒 ${item.text}`;
+    const date=document.createElement("span");date.className="worry-date";date.textContent=item.date;
+    top.append(txt,date);
+    const meta=document.createElement("div");meta.className="worry-meta";
+    const savedMode=item.mode||item.constraint;
+    const modeLabel=handlingModes[savedMode]?.label||legacyConstraintLabels[savedMode]||"대응 방식 미정";
+    meta.textContent=`${personas[item.doll]?.name||"DOLL"} · ${categories[item.category]?.label||"기타"} · ${modeLabel} · ${item.choice||""}`;
+    li.append(top,meta);
+    if(item.note){
+      const note=document.createElement("div");note.className="saved-note last-saved-note";note.textContent=`마지막으로 남긴 말 · ${item.note}`;li.appendChild(note);
+    }
+    const btn=document.createElement("button");btn.className="release-btn";btn.type="button";btn.textContent="이 걱정을 보내주기";
+    const status=document.createElement("div");status.className="release-status";
+    btn.addEventListener("click",()=>releaseWorry(index,li));
+    li.append(btn,status);worryList.appendChild(li);
+  });
+}
+renderArchive();
+</script>
+</body>
+</html>
