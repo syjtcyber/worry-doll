@@ -55,31 +55,34 @@
     pointer-events:none;
   }
   header{
-    position:absolute; left:20px; right:20px; top:18px;
+    position:absolute; left:20px; right:18px; top:18px;
     display:flex; align-items:center; justify-content:space-between;
     z-index:5;
+    gap:12px;
   }
   h1{
     margin:0;
-    font-size:clamp(23px, 7vw, 34px);
-    letter-spacing:.04em;
+    font-size:clamp(21px, 5.8vw, 27px);
+    letter-spacing:.025em;
     line-height:1;
+    white-space:nowrap;
   }
   .bottleBtn{
     border:1px solid var(--line);
     background:rgba(7,10,16,.68);
     color:var(--text);
     border-radius:999px;
-    padding:9px 14px;
-    font-size:14px;
+    padding:7px 11px;
+    font-size:13px;
     cursor:pointer;
+    white-space:nowrap;
   }
   .stage{
     position:absolute; inset:0;
-    padding:74px 20px 20px;
+    padding:62px 18px 34px;
     display:grid;
     grid-template-rows: 1fr auto;
-    gap:10px;
+    gap:8px;
     z-index:2;
   }
   .theater{
@@ -93,18 +96,20 @@
     overflow:hidden;
   }
   .prompt{
-    position:absolute; left:18px; right:18px; bottom:14px;
+    position:absolute; left:16px; right:16px; top:10px;
+    min-height:22px;
     text-align:center;
     color:#d8cfbd;
-    font-size:clamp(15px,4vw,18px);
-    line-height:1.35;
+    font-size:clamp(12px,3.2vw,14px);
+    line-height:1.25;
     z-index:8;
     text-shadow:0 2px 10px rgba(0,0,0,.7);
+    pointer-events:none;
   }
 
   .doll{
-    position:absolute; left:50%; top:49%;
-    width:min(58vw, 210px); height:min(58vw, 210px);
+    position:absolute; left:50%; top:54%;
+    width:min(50vw, 188px); height:min(50vw, 188px);
     transform:translate(-50%,-50%);
     filter:drop-shadow(0 18px 10px rgba(0,0,0,.35));
     transition:.28s ease;
@@ -159,14 +164,14 @@
   }
   .panel{
     border:1px solid rgba(235,226,205,.13);
-    border-radius:24px;
+    border-radius:22px;
     background:rgba(7,10,16,.78);
-    padding:14px;
-    min-height:128px;
+    padding:12px;
+    min-height:112px;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:10px;
+    gap:9px;
   }
-  .panelTitle{font-size:18px; color:#d7cfbd; text-align:center; line-height:1.2}
+  .panelTitle{font-size:16px; color:#d7cfbd; text-align:center; line-height:1.2}
   .tiny{font-size:12px; color:var(--muted); text-align:center; line-height:1.35}
   .row{display:flex; gap:9px; flex-wrap:wrap; justify-content:center; width:100%}
   button{
@@ -202,17 +207,17 @@
     font-size:15px;
   }
   .footer{
-    position:absolute; left:20px; right:20px; bottom:5px;
-    text-align:center; font-size:10.5px; line-height:1.25; color:rgba(238,232,218,.48);
+    position:absolute; left:20px; right:20px; bottom:8px;
+    text-align:center; font-size:9.5px; line-height:1.22; color:rgba(238,232,218,.42);
     z-index:6; pointer-events:none;
   }
   .hidden{display:none!important}
   .bottleList{width:100%; max-height:86px; overflow:auto; display:flex; flex-direction:column; gap:6px}
   .bottleItem{font-size:12px; color:#d8cfbd; background:rgba(255,255,255,.04); border:1px solid rgba(235,226,205,.1); border-radius:12px; padding:7px 9px; line-height:1.25}
   @media (max-width:380px){
-    .app{width:96vw}.stage{padding:66px 14px 16px}.doll{transform:translate(-50%,-50%) scale(.9)}
-    .panel{min-height:120px;padding:11px}.dollPick{min-width:82px;font-size:13px}button{padding:10px 12px;font-size:14px}
-    h1{font-size:24px}.bottleBtn{font-size:12px;padding:8px 11px}
+    .app{width:96vw}.stage{padding:58px 14px 32px}.doll{transform:translate(-50%,-50%) scale(.92)}
+    .panel{min-height:104px;padding:10px}.dollPick{min-width:82px;font-size:13px}button{padding:10px 12px;font-size:14px}
+    h1{font-size:21px}.bottleBtn{font-size:12px;padding:7px 10px}
   }
 </style>
 </head>
@@ -273,7 +278,7 @@ function cleanLetter(){letter.className='letter';}
 function setPanel(html){panel.innerHTML=html}
 function goSelect(){
   cleanLetter(); setDoll(current); promptEl.textContent='인형을 골라요.';
-  setPanel(`<div class="panelTitle">누구에게 맡길까요?</div><div class="row">
+  setPanel(`<div class="panelTitle">인형 선택</div><div class="row">
     ${Object.entries(dolls).map(([k,d])=>`<button class="dollPick ${k===current?'primary':''}" data-pick="${k}"><b>${d.name}</b><span>${d.label}</span></button>`).join('')}
   </div>`);
   panel.querySelectorAll('[data-pick]').forEach(btn=>btn.onclick=()=>{setDoll(btn.dataset.pick); goInput();});
@@ -294,13 +299,13 @@ function goReason(){
   panel.querySelectorAll('[data-reason]').forEach(btn=>btn.onclick=()=>{reason=btn.dataset.reason; goFeed();});
 }
 function goFeed(){
-  promptEl.textContent='인형이 편지를 먹고 있어요.';
-  setPanel(`<div class="tiny">잠시만 기다려요.</div>`);
+  promptEl.textContent='';
+  setPanel(`<div class="panelTitle">편지를 먹고 있어요</div>`);
   letter.className='letter feed'; feedNod();
   setTimeout(goBelly,1250);
 }
 function goBelly(){
-  cleanLetter(); belly.textContent='✉'; promptEl.textContent='배를 눌러 편지를 꺼내요.';
+  cleanLetter(); belly.textContent='✉'; promptEl.textContent='배 안에 편지가 있어요.';
   setPanel(`<button class="primary" id="touchBelly">배 누르기</button>`);
   document.getElementById('touchBelly').onclick=goReply;
 }
@@ -311,7 +316,7 @@ function response(){
   return r==='talk' ? '말은 그림자를 밖에 세우는 일이야.<br>지금은 조금 멀어졌어.' : '건넨 순간 모양은 조금 변했어.<br>내려놓는 의식은 시작됐어.';
 }
 function goReply(){
-  belly.textContent='♡'; letter.classList.add('show'); promptEl.textContent='편지가 나왔어요.';
+  belly.textContent='♡'; letter.classList.add('show'); promptEl.textContent='편지 확인';
   setPanel(`<div class="reply">${response()}</div><div class="row"><button id="fog">안개로 보내기</button><button class="primary" id="keep">병에 넣기</button></div>`);
   document.getElementById('keep').onclick=()=>{const list=archive(); list.unshift({doll:current, reason, worry, at:new Date().toLocaleString('ko-KR')}); saveArchive(list.slice(0,20)); promptEl.textContent='병에 넣어두었어요.'; nod(); setTimeout(reset,900);};
   document.getElementById('fog').onclick=()=>{promptEl.textContent='안개숲으로 보냈어요.'; letter.className='letter feed'; feedNod(); setTimeout(reset,1000);};
