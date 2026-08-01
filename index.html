@@ -583,6 +583,47 @@ textarea{
   .bottle-top-actions .action{height:25px}
 }
 
+
+/* --- 260801 빈 병 화면 규격 맞춤: 버튼 잘림 방지 --- */
+.panel.empty-bottle-mode{
+  top:62.5%;
+  height:26.4%;
+  padding:10px 10px 9px;
+  gap:7px;
+  justify-content:center;
+  overflow:hidden;
+}
+.panel.empty-bottle-mode .panel-title{
+  font-size:clamp(.72rem,3vw,.9rem);
+  line-height:1.14;
+  margin:0;
+}
+.panel.empty-bottle-mode .panel-sub{
+  font-size:clamp(.52rem,2.08vw,.64rem);
+  line-height:1.28;
+  margin:0 auto;
+}
+.panel.empty-bottle-mode .actions{
+  gap:7px;
+  margin-top:2px;
+}
+.panel.empty-bottle-mode .action{
+  height:28px;
+  border-radius:10px;
+  font-size:clamp(.52rem,2.05vw,.64rem);
+}
+@media(max-width:420px){
+  .panel.empty-bottle-mode{
+    top:62.2%;
+    height:27%;
+    padding:9px 9px 8px;
+    gap:6px;
+  }
+  .panel.empty-bottle-mode .action{height:27px;font-size:.52rem}
+  .panel.empty-bottle-mode .panel-sub{font-size:.48rem;line-height:1.23}
+}
+
+
 </style>
 </head>
 <body>
@@ -616,9 +657,10 @@ function panelBottle(){
   sceneText.textContent='병에 잠시 보관한 걱정이에요.';
   panel.classList.add('bottle-list-mode');
   if(!bottles.length){
-    panel.innerHTML=`<p class="panel-title">병이 비어 있어요.</p><p class="panel-sub">맡겨둔 걱정이 아직 없어요.</p><div class="actions"><button class="action primary" id="backHome" type="button">돌아가기</button><button class="action" id="newWorry" type="button">새 걱정</button></div>`;
-    document.getElementById('backHome').addEventListener('click',()=>{panel.classList.remove('bottle-list-mode');panelChoose()});
-    document.getElementById('newWorry').addEventListener('click',()=>{panel.classList.remove('bottle-list-mode');panelInput()});
+    panel.classList.add('empty-bottle-mode');
+    panel.innerHTML=`<p class="panel-title">병이 비어 있어요.</p><p class="panel-sub">아직 맡겨둔 걱정은 없어요.<br>혹시 지금 생각난 걱정이 있나요?</p><div class="actions"><button class="action primary" id="backHome" type="button">괜찮아요</button><button class="action" id="newWorry" type="button">생각난 걱정이 있어요</button></div>`;
+    document.getElementById('backHome').addEventListener('click',()=>{panel.classList.remove('bottle-list-mode','empty-bottle-mode');panelChoose()});
+    document.getElementById('newWorry').addEventListener('click',()=>{panel.classList.remove('bottle-list-mode','empty-bottle-mode');panelInput()});
     return
   }
   const items=bottles.map((item,index)=>{
@@ -629,9 +671,10 @@ function panelBottle(){
       <button class="bottle-remove" type="button" data-index="${index}">보내기</button>
     </div>`
   }).join('');
+  panel.classList.remove('empty-bottle-mode');
   panel.innerHTML=`<div class="bottle-top-actions"><button class="action primary" id="backHome" type="button">돌아가기</button><button class="action" id="newWorry" type="button">새 걱정</button></div><div class="bottle-list">${items}</div>`;
-  document.getElementById('backHome').addEventListener('click',()=>{panel.classList.remove('bottle-list-mode');panelChoose()});
-  document.getElementById('newWorry').addEventListener('click',()=>{panel.classList.remove('bottle-list-mode');panelInput()});
+  document.getElementById('backHome').addEventListener('click',()=>{panel.classList.remove('bottle-list-mode','empty-bottle-mode');panelChoose()});
+  document.getElementById('newWorry').addEventListener('click',()=>{panel.classList.remove('bottle-list-mode','empty-bottle-mode');panelInput()});
   panel.querySelectorAll('[data-index]').forEach(btn=>btn.addEventListener('click',()=>{
     const index=Number(btn.dataset.index);
     bottles.splice(index,1);
